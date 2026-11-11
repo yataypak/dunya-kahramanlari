@@ -1,0 +1,24 @@
+const { chromium } = require('playwright');
+(async () => {
+  const browser = await chromium.launch();
+  const out = '/app/shots-preview'; require('fs').mkdirSync(out, { recursive: true });
+  const base = 'http://127.0.0.1:3000';
+  const d = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+  await d.goto(base + '/tr', { waitUntil: 'networkidle' });
+  await d.screenshot({ path: out + '/home.png' });
+  const go = async (sel, name, off) => { const y = await d.evaluate((s) => { const el = document.querySelector(s); return el ? el.getBoundingClientRect().top + window.scrollY : 0; }, sel); await d.evaluate((v) => window.scrollTo(0, v), Math.max(0, y - off)); await d.waitForTimeout(1500); await d.screenshot({ path: `${out}/${name}.png` }); };
+  await go('.lead-grid', 'featured', 240);
+  await go('.collection-grid', 'collections', 300);
+  await go('.legacy-grid', 'legacy', 300);
+  await d.goto(base + '/tr/hero/marie-curie#honors', { waitUntil: 'networkidle' });
+  const hy = await d.evaluate(() => document.querySelector('#honors').getBoundingClientRect().top + window.scrollY);
+  await d.evaluate((v) => window.scrollTo(0, v - 110), hy); await d.waitForTimeout(1500);
+  await d.screenshot({ path: out + '/curie-honors.png' });
+  await d.goto(base + '/tr/countries', { waitUntil: 'networkidle' });
+  await d.screenshot({ path: out + '/countries.png' });
+  const m = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();
+  await m.goto(base + '/tr', { waitUntil: 'networkidle' });
+  await m.screenshot({ path: out + '/m-home.png' });
+  await browser.close();
+  console.log('shots ok');
+})().catch((e) => { console.error('ERR', e.message.slice(0, 300)); process.exit(1); });
